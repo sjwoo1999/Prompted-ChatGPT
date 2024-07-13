@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoT 분석 채팅</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="box left-box" id="left-box">{입력된 메시지}에 대해 CoT(Chain-of-Thought) 기법을 활용해서 분석해줘.</div>
+        <div class="chat-container">
+            <ul class="messages" id="chat-messages"></ul>
+            <form id="chat-form">
+                <input type="text" id="message-input" autocomplete="off" placeholder="메시지를 입력하세요...">
+                <button type="submit">전송</button>
+            </form>
+        </div>
+        <div class="box right-box" id="right-box"></div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

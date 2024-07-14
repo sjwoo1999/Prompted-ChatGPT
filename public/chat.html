@@ -1,22 +1,33 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CoT 분석 채팅</title>
+    <title>Chat with GPT</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <div class="box left-box" id="left-box">{입력된 메시지}에 대해 CoT(Chain-of-Thought) 기법을 활용해서 분석해줘.</div>
-        <div class="chat-container">
-            <ul class="messages" id="chat-messages"></ul>
+        <div id="left-box" class="box"></div>
+        <div id="chat-container">
+            <ul id="chat-messages"></ul>
             <form id="chat-form">
-                <input type="text" id="message-input" autocomplete="off" placeholder="메시지를 입력하세요...">
-                <button type="submit">전송</button>
+                <div id="input-container">
+                    <input type="text" id="message-input" placeholder="메시지를 입력하세요...">
+                    <div id="image-preview-container">
+                        <img id="image-preview" src="" alt="Image preview">
+                    </div>
+                </div>
+                <div id="button-container">
+                    <label for="image-upload" class="upload-button">
+                        <img src="upload-icon.png" alt="Upload" width="20" height="20">
+                    </label>
+                    <input type="file" id="image-upload" accept="image/*">
+                    <button type="submit">전송</button>
+                </div>
             </form>
         </div>
-        <div class="box right-box" id="right-box"></div>
+        <div id="right-box" class="box"></div>
     </div>
     <script src="script.js"></script>
 </body>

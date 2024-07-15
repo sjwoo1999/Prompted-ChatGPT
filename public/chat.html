@@ -11,6 +11,7 @@
         <div id="left-box" class="box"></div>
         <div id="chat-container">
             <ul id="chat-messages"></ul>
+            <div id="error-message" class="error-message"></div>
             <form id="chat-form">
                 <div id="input-container">
                     <input type="text" id="message-input" placeholder="메시지를 입력하세요...">
@@ -22,7 +23,7 @@
                     <label for="image-upload" class="upload-button">
                         <img src="upload-icon.png" alt="Upload" width="20" height="20">
                     </label>
-                    <input type="file" id="image-upload" accept="image/*">
+                    <input type="file" id="image-upload" accept="image/jpeg,image/png">
                     <button type="submit">전송</button>
                 </div>
             </form>

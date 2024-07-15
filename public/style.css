@@ -167,3 +167,10 @@ button:hover {
 #chat-messages::-webkit-scrollbar-track {
     background-color: #f1f1f1;
 }
+
+.error-message {
+    color: red;
+    text-align: center;
+    margin-bottom: 10px;
+    font-weight: bold;
+}

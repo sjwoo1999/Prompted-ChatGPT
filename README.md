@@ -1,6 +1,6 @@
 # 건생건사
 
-![건생건사(2000x2000)](https://github.com/user-attachments/assets/4d85c935-d79a-40d3-a800-8c7cd027d7dd)
+<img width="250" alt="건생건사(500x500)" src="https://github.com/user-attachments/assets/818ad24f-bb1a-4a07-981a-3f1a6eea44a8">
 
 ## 프로젝트 개요
 

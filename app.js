@@ -59,8 +59,14 @@ const basePrompt = `
     "음식상세": [
         {
             "음식명": "",
-            "예상양": "",
+            "예상양": 0,
             "칼로리": 0,
+            "영양정보": {
+                "칼로리": 0,
+                "탄수화물": 0,
+                "단백질": 0,
+                "지방": 0
+            },
             "주요영양소": ""
         }
     ],
@@ -79,6 +85,7 @@ const basePrompt = `
 모든 분석은 업로드된 이미지만을 기반으로 하며, 정확한 개인별 권장량을 위해서는 사용자의 성별, 나이, 체중, 활동 수준 등의 추가 정보가 필요함을 명시하세요.
 
 사용자의 질문이나 요청에 따라 위의 형식을 유연하게 조정하지 말고, 항상 이 JSON 구조를 유지하세요.
+각 음식의 '예상양'은 그램(g) 단위로 제공하고, '영양정보'는 100g 당 영양소 함량을 나타냅니다.
 `;
 
 app.post('/api/message', upload.single('image'), async (req, res) => {
@@ -95,10 +102,10 @@ app.post('/api/message', upload.single('image'), async (req, res) => {
         const imageUrl = req.file ? moveImageFile(req.file.path) : null;
     
         res.json({ response: gptResponse, imageUrl });
-      } catch (error) {
-        console.error('API 처리 중 오류 발생:', error);
+    } catch (error) {
+        enhancedLogging('API 처리 중 오류 발생:', error);
         res.status(500).json({ error: '서버 내부 오류입니다. 나중에 다시 시도해주세요.' });
-      }
+    }
 });
 
 function encodeImageToBase64(filePath) {
@@ -108,6 +115,83 @@ function encodeImageToBase64(filePath) {
             else resolve(data.toString('base64'));
         });
     });
+}
+
+function sanitizeJsonString(jsonString) {
+    jsonString = jsonString.trim();
+    jsonString = jsonString.replace(/,\s*([\]}])/g, '$1');
+    const openBraces = (jsonString.match(/{/g) || []).length;
+    const closeBraces = (jsonString.match(/}/g) || []).length;
+    jsonString += '}}'.repeat(openBraces - closeBraces);
+    return jsonString;
+}
+
+function parsePartialJson(jsonString) {
+    try {
+        return JSON.parse(jsonString);
+    } catch (error) {
+        console.warn("완전한 JSON 파싱 실패, 부분 파싱 시도:", error.message);
+        const partialObject = {};
+        jsonString.replace(/("[^"]+"):([^,}\]]+)/g, (match, key, value) => {
+            try {
+                partialObject[JSON.parse(key)] = JSON.parse(value);
+            } catch (e) {
+                partialObject[JSON.parse(key)] = value.trim();
+            }
+        });
+        return partialObject;
+    }
+}
+
+function getFallbackResponse(error, rawResponse) {
+    return {
+        error: "응답 파싱 중 오류가 발생했습니다.",
+        message: error.message,
+        rawResponse: rawResponse
+    };
+}
+
+function enhancedLogging(message, data) {
+    console.log(`[${new Date().toISOString()}] ${message}`);
+    if (data) {
+        console.log(JSON.stringify(data, null, 2));
+    }
+}
+
+function isResponseComplete(response) {
+    try {
+        JSON.parse(response);
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
+function findLastCompleteObject(incompleteJson) {
+    let lastValidIndex = incompleteJson.lastIndexOf('}');
+    if (lastValidIndex === -1) return '';
+    let openBraces = 0;
+    for (let i = 0; i <= lastValidIndex; i++) {
+        if (incompleteJson[i] === '{') openBraces++;
+        if (incompleteJson[i] === '}') openBraces--;
+    }
+    while (openBraces > 0 && lastValidIndex > 0) {
+        lastValidIndex = incompleteJson.lastIndexOf('}', lastValidIndex - 1);
+        openBraces--;
+    }
+    return incompleteJson.substring(0, lastValidIndex + 1);
+}
+
+function mergeAndParseResponses(responses) {
+    let mergedResponse = responses.join('');
+    mergedResponse = sanitizeJsonString(mergedResponse);
+    let completeJson = findLastCompleteObject(mergedResponse);
+    try {
+        return JSON.parse(completeJson);
+    } catch (error) {
+        enhancedLogging("JSON 파싱 실패, 부분 파싱 시도", error);
+        return parsePartialJson(completeJson);
+    }
 }
 
 async function getGPTResponse(message, imageBase64) {
@@ -140,31 +224,54 @@ async function getGPTResponse(message, imageBase64) {
     };
 
     try {
-        const response = await axios.post(apiUrl, payload, {
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-            },
-            timeout: 60000 // 60 seconds timeout
-        });
-
-        if (response.data && response.data.choices && response.data.choices.length > 0 && response.data.choices[0].message) {
-            const content = response.data.choices[0].message.content;
+        let allResponses = [];
+        let isComplete = false;
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        while (!isComplete && retryCount < maxRetries) {
             try {
-              const parsedContent = JSON.parse(content);
-              console.log('Parsed GPT Response:', JSON.stringify(parsedContent, null, 2));
-              return parsedContent; // 파싱된 JSON 객체 반환
-            } catch (parseError) {
-              console.error('Failed to parse GPT response as JSON:', parseError);
-              console.log('Raw GPT Response:', content);
-              return { error: 'Failed to parse response', rawContent: content };
+                const response = await axios.post(apiUrl, payload, {
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 60000 // 60 seconds timeout
+                });
+
+                if (response.data && response.data.choices && response.data.choices.length > 0 && response.data.choices[0].message) {
+                    const content = response.data.choices[0].message.content;
+                    allResponses.push(content);
+
+                    if (isResponseComplete(content)) {
+                        isComplete = true;
+                    } else {
+                        payload.messages.push({ role: "assistant", content: content });
+                        payload.messages.push({ role: "user", content: "Please continue the previous response." });
+                    }
+                } else {
+                    throw new Error('Invalid response structure from OpenAI API');
+                }
+            } catch (error) {
+                enhancedLogging(`Attempt ${retryCount + 1} failed:`, error.message);
+                retryCount++;
+                if (retryCount >= maxRetries) {
+                    throw error;
+                }
+                await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
             }
-          }
-      
-          throw new Error('Invalid response structure from OpenAI API');
+        }
+
+        if (!isComplete) {
+            throw new Error('Failed to get a complete response after maximum retries');
+        }
+
+        const parsedContent = mergeAndParseResponses(allResponses);
+        enhancedLogging('Parsed GPT Response:', parsedContent);
+        return parsedContent;
     } catch (error) {
-        console.error('Failed to get GPT response:', error.response ? error.response.data : error.message);
-        throw new Error('Failed to get response from OpenAI: ' + (error.response ? JSON.stringify(error.response.data) : error.message));
+        enhancedLogging('Failed to get GPT response:', error.response ? error.response.data : error.message);
+        return getFallbackResponse(error, allResponses.join(''));
     }
 }
 

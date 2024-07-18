@@ -144,8 +144,15 @@ document.addEventListener('DOMContentLoaded', function() {
         html += `<div class="food-items">`;
         data.음식상세.forEach(food => {
             html += `<div class="food-item">
-                        <img src="${food.이미지URL}" alt="${food.음식명}" class="food-image">
-                        <p><strong>${food.음식명}</strong>: ${food.칼로리} kcal</p>
+                        <p><strong>${food.음식명}</strong>: ${food.예상양}g, ${food.칼로리} kcal</p>
+                        <p>100g 당 영양정보:</p>
+                        <ul>
+                            <li>칼로리: ${food.영양정보.칼로리} kcal</li>
+                            <li>탄수화물: ${food.영양정보.탄수화물}g</li>
+                            <li>단백질: ${food.영양정보.단백질}g</li>
+                            <li>지방: ${food.영양정보.지방}g</li>
+                        </ul>
+                        <p>주요 영양소: ${food.주요영양소}</p>
                      </div>`;
         });
         html += `</div>`;
@@ -153,6 +160,7 @@ document.addEventListener('DOMContentLoaded', function() {
         html += `<p><strong>장점:</strong> ${data.영양분석.장점.join(', ')}</p>`;
         html += `<p><strong>개선점:</strong> ${data.영양분석.개선점.join(', ')}</p>`;
         html += `<h4>권장 사항</h4>`;
+        html += `<ul>`;
         data.권장사항.forEach(item => {
             html += `<li>${item}</li>`;
         });

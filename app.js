@@ -32,14 +32,14 @@ const fileFilter = function (req, file, cb) {
     if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png') {
         cb(null, true);
     } else {
-        cb(new Error('Unsupported file format. Only jpg or png files are allowed.'), false);
+        cb(new Error('허용되지 않는 파일 형식입니다. jpg 또는 png 파일만 업로드 가능합니다.'), false);
     }
 };
 
 const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
-    limits: { files: 1, fileSize: 5 * 1024 * 1024 } // 5MB limit
+    limits: { files: 1, fileSize: 5 * 1024 * 1024 } // 5MB 제한
 });
 
 app.get('/', (req, res) => {
@@ -47,38 +47,38 @@ app.get('/', (req, res) => {
 });
 
 const basePrompt = `
-당신은 영양학과 식품과학 분야의 전문가인 AI 영양사입니다. 사용자가 업로드한 식단 이미지를 분석하여 종합적이고 구조화된 식단 정보를 제공합니다. 다음 형식에 따라 분석 결과를 출력하세요:
+당신은 영양학과 식품과학 분야의 전문가인 AI 영양사입니다. 사용자가 업로드한 식단 이미지를 분석하여 종합적이고 구조화된 식단 정보를 제공합니다. 다음 JSON 형식에 따라 분석 결과를 출력하세요:
 
-🍽️ 식단 요약
-- 총 칼로리: [예상 총 칼로리] kcal
-- 주요 영양소 비율: 탄수화물 [%], 단백질 [%], 지방 [%]
-
-📊 음식 상세 정보
-| 음식명 | 예상 양 | 칼로리 | 주요 영양소 |
-|--------|---------|--------|-------------|
-| [음식1] | [양] | [칼로리] kcal | [주요 영양소] |
-| [음식2] | [양] | [칼로리] kcal | [주요 영양소] |
-(이하 계속)
-
-💡 영양 분석
-- 장점: [식단의 긍정적인 측면 나열]
-- 개선점: [보완이 필요한 부분 나열]
-
-🌟 맞춤 권장 사항
-1. [주요 권장 사항 1]
-2. [주요 권장 사항 2]
-3. [주요 권장 사항 3]
-
-⏰ 식사 시간 조언
-- 이 식단은 [아침/점심/저녁/간식]으로 적합합니다.
-- [시간대에 따른 추가 조언]
-
-📌 주의사항
-[알레르기, 특정 식이 제한 등 주의해야 할 사항]
+{
+    "총칼로리": 0,
+    "영양소비율": {
+        "탄수화물": 0,
+        "단백질": 0,
+        "지방": 0
+    },
+    "음식상세": [
+        {
+            "음식명": "",
+            "예상양": "",
+            "칼로리": 0,
+            "주요영양소": ""
+        }
+    ],
+    "영양분석": {
+        "장점": [],
+        "개선점": []
+    },
+    "권장사항": [],
+    "식사시간": {
+        "적합한시간": "",
+        "조언": ""
+    },
+    "주의사항": ""
+}
 
 모든 분석은 업로드된 이미지만을 기반으로 하며, 정확한 개인별 권장량을 위해서는 사용자의 성별, 나이, 체중, 활동 수준 등의 추가 정보가 필요함을 명시하세요.
 
-사용자의 질문이나 요청에 따라 위의 형식을 유연하게 조정하지 말고, 직관적으로 전달하고, 항상 친절하고 전문적인 톤을 유지하세요.
+사용자의 질문이나 요청에 따라 위의 형식을 유연하게 조정하지 말고, 항상 이 JSON 구조를 유지하세요.
 `;
 
 app.post('/api/message', upload.single('image'), async (req, res) => {
@@ -91,15 +91,14 @@ app.post('/api/message', upload.single('image'), async (req, res) => {
     try {
         const imageBase64 = req.file ? await encodeImageToBase64(req.file.path) : null;
         const gptResponse = await getGPTResponse(message, imageBase64);
-
+    
         const imageUrl = req.file ? moveImageFile(req.file.path) : null;
-
-        console.log('GPT Response:', gptResponse); // Updated log message
+    
         res.json({ response: gptResponse, imageUrl });
-    } catch (error) {
-        console.error('Error during API processing:', error);
-        res.status(500).json({ error: 'Internal server error. Please try again later.' });
-    }
+      } catch (error) {
+        console.error('API 처리 중 오류 발생:', error);
+        res.status(500).json({ error: '서버 내부 오류입니다. 나중에 다시 시도해주세요.' });
+      }
 });
 
 function encodeImageToBase64(filePath) {
@@ -118,19 +117,26 @@ async function getGPTResponse(message, imageBase64) {
     }
 
     const apiUrl = 'https://api.openai.com/v1/chat/completions';
-
-    let messages = [{ role: "user", content: message }];
+    
+    let messages = [
+        { role: "system", content: basePrompt },
+        { role: "user", content: message }
+    ];
     if (imageBase64) {
         messages.push({
             role: "user",
-            content: { type: "image_url", image_url: `data:image/jpeg;base64,${imageBase64}` }
+            content: [
+                { type: "text", text: "Analyze this image:" },
+                { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
+            ]
         });
     }
 
     const payload = {
         model: imageBase64 ? "gpt-4o" : "gpt-4",
         messages: messages,
-        max_tokens: 500
+        max_tokens: 1000,
+        response_format: { type: "json_object" }
     };
 
     try {
@@ -139,14 +145,23 @@ async function getGPTResponse(message, imageBase64) {
                 'Authorization': `Bearer ${apiKey}`,
                 'Content-Type': 'application/json'
             },
-            timeout: 30000 // 30 seconds timeout
+            timeout: 60000 // 60 seconds timeout
         });
 
         if (response.data && response.data.choices && response.data.choices.length > 0 && response.data.choices[0].message) {
-            return response.data.choices[0].message.content.trim();
-        }
-
-        throw new Error('Invalid response structure from OpenAI API');
+            const content = response.data.choices[0].message.content;
+            try {
+              const parsedContent = JSON.parse(content);
+              console.log('Parsed GPT Response:', JSON.stringify(parsedContent, null, 2));
+              return parsedContent; // 파싱된 JSON 객체 반환
+            } catch (parseError) {
+              console.error('Failed to parse GPT response as JSON:', parseError);
+              console.log('Raw GPT Response:', content);
+              return { error: 'Failed to parse response', rawContent: content };
+            }
+          }
+      
+          throw new Error('Invalid response structure from OpenAI API');
     } catch (error) {
         console.error('Failed to get GPT response:', error.response ? error.response.data : error.message);
         throw new Error('Failed to get response from OpenAI: ' + (error.response ? JSON.stringify(error.response.data) : error.message));
@@ -160,6 +175,6 @@ function moveImageFile(imagePath) {
 }
 
 app.listen(PORT, () => {
-    console.log(`Server is running at http://localhost:${PORT}`);
-    console.log('Environment variable OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? 'set' : 'not set');
+    console.log(`서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
+    console.log('환경 변수 OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? '설정됨' : '설정되지 않음');
 });

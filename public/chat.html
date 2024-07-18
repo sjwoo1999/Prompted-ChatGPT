@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" width=device-width, initial-scale=1.0">
     <title>건생건사</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -10,7 +10,14 @@
     <div class="container">
         <div id="left-box" class="box"></div>
         <div id="chat-container">
-            <ul id="chat-messages"></ul>
+            <div id="chat-messages">
+                <ul></ul>
+                <div id="loading-animation" class="loading-animation">
+                    <div class="loading-dot"></div>
+                    <div class="loading-dot"></div>
+                    <div class="loading-dot"></div>
+                </div>
+            </div>
             <div id="error-message" class="error-message"></div>
             <form id="chat-form">
                 <div id="input-container">

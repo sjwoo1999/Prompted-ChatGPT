@@ -1,6 +1,6 @@
 # 건생건사
 
-![건생건사](https://github.com/user-attachments/assets/6a72e733-18aa-42df-ade1-124ca3b3e6ee)
+<img src="https://github.com/user-attachments/assets/6a72e733-18aa-42df-ade1-124ca3b3e6ee" alt="건생건사 로고" width="2000" height="2000">
 
 ## 프로젝트 개요
 

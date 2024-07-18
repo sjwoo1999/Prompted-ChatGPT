@@ -24,3 +24,6 @@ Thumbs.db
 # 임시 파일
 /tmp
 /temp
+
+# uploads directory
+/public/uploads

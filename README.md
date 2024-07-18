@@ -1,6 +1,6 @@
 # 건생건사
 
-<div style="text-align: center;">
+<div align="center">
     <img width="250" alt="건생건사(500x500)" src="https://github.com/user-attachments/assets/818ad24f-bb1a-4a07-981a-3f1a6eea44a8">
 </div>
 
